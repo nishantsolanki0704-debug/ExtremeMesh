@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ======================================================= -->
+    <!-- 1. HARDWARE CAPABILITIES DECLARATIONS                   -->
+    <!-- ======================================================= -->
+    <!-- Mesh relies explicitly on BLE and Wi-Fi features -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <uses-feature android:name="android.hardware.wifi" android:required="true" />
+    <!-- GPS is needed for the offline map rescue coords -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
+    <!-- ======================================================= -->
+    <!-- 2. BLUETOOTH & WI-FI PERMISSIONS (Android 12+ / API 31+)-->
+    <!-- ======================================================= -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Required for LocalOnlyHotspot burst payloads on Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+
+    <!-- ======================================================= -->
+    <!-- 3. LEGACY BLUETOOTH PERMISSIONS (API 30 and below)      -->
+    <!-- ======================================================= -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- ======================================================= -->
+    <!-- 4. LOCATION PERMISSIONS (For GPS & Legacy BLE/Wi-Fi)    -->
+    <!-- ======================================================= -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- ======================================================= -->
+    <!-- 5. FOREGROUND SERVICE PERMISSIONS (Android 14/15)       -->
+    <!-- ======================================================= -->
+    <!-- Base permission required for all foreground services -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Crucial to bypass Android 15 background process limits for mesh logic -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Required to keep updating the rescuer map while the phone screen is off -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- ======================================================= -->
+    <!-- 6. STORAGE & NETWORK PERMISSIONS (For OSMDroid Maps)    -->
+    <!-- ======================================================= -->
+    <!-- Needed to download OpenStreetMap tiles initially if network is available -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Map tile caching for API 29 and below -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+
+    <!-- ======================================================= -->
+    <!-- 7. POWER MANAGEMENT (Crucial for Duty Cycling)          -->
+    <!-- ======================================================= -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ExtremeMesh"
+        tools:targetApi="31">
+
+        <!-- Main Dashboard Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- The Persistent Mesh Background Service -->
+        <!-- Explicitly declares connectedDevice and location to satisfy Android 14+ enforcement -->
+        <service
+            android:name=".MeshNodeService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location" />
+        <activity
+            android:name=".SosRequestsActivity"
+            android:exported="false"
+            android:label="Incoming Requests"
+            android:parentActivityName=".MainActivity" />
+
+    </application>
+</manifest>
