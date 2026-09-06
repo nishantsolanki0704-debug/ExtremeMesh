@@ -25,7 +25,6 @@ public class WifiClientManager {
 
     private static final String TAG = "WifiClientManager";
     private static final int BURST_PORT = 8888;
-    // The default IP address for Android LocalOnlyHotspot Group Owners
     private static final String AP_IP_ADDRESS = "192.168.43.1";
 
     private final Context context;
@@ -49,7 +48,7 @@ public class WifiClientManager {
 
         NetworkRequest request = new NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) // Peer-to-peer only
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .setNetworkSpecifier(specifier)
                 .build();
 
@@ -59,10 +58,7 @@ public class WifiClientManager {
                 super.onAvailable(network);
                 Log.d(TAG, "Successfully connected to Mesh AP: " + ssid);
 
-                // Route all socket traffic in this app through this specific Wi-Fi network
                 connectivityManager.bindProcessToNetwork(network);
-
-                // Execute the TCP transfer
                 executePayloadBurst(network, payloadToBurst);
             }
 
@@ -81,7 +77,6 @@ public class WifiClientManager {
     private void executePayloadBurst(Network network, byte[] payloadToCompress) {
         socketExecutor.execute(() -> {
             try (Socket socket = new Socket()) {
-                // Bind the socket explicitly to the Wi-Fi network interface
                 network.bindSocket(socket);
 
                 Log.d(TAG, "Connecting TCP Socket to " + AP_IP_ADDRESS + ":" + BURST_PORT);
@@ -90,30 +85,28 @@ public class WifiClientManager {
                 try (OutputStream out = socket.getOutputStream();
                      InputStream in = socket.getInputStream()) {
 
-                    // 1. Compress the data!
                     Log.d(TAG, "Original payload size: " + payloadToCompress.length + " bytes");
                     byte[] compressedPayload = ZstdManager.compressWithHeader(payloadToCompress);
 
                     if (compressedPayload != null) {
-                        // Create a unique Payload ID based on timestamp
                         int payloadId = (int) (System.currentTimeMillis() / 1000);
 
-                        // Encode into RaptorQ Symbols
-                        List<FountainSymbol> symbols = RaptorQManager.encodeSystematic(compressedPayload, payloadId);
+                        List<FountainSymbol> symbols =
+                                RaptorQManager.encodeSystematic(compressedPayload, payloadId);
 
                         Log.d(TAG, "Streaming " + symbols.size() + " Fountain Symbols over Wi-Fi...");
 
-                        // Transmit symbols sequentially
                         for (FountainSymbol symbol : symbols) {
                             out.write(symbol.toBytes());
                         }
+
                         out.flush();
                         Log.d(TAG, "Burst complete!");
                     }
 
-                    // 3. Wait for Server ACK
                     byte[] ackBuffer = new byte[64];
                     int bytesRead = in.read(ackBuffer);
+
                     if (bytesRead > 0) {
                         String ack = new String(ackBuffer, 0, bytesRead);
                         Log.d(TAG, "Received Server ACK: " + ack);
@@ -130,12 +123,13 @@ public class WifiClientManager {
     public void releaseNetwork() {
         if (networkCallback != null) {
             try {
-                connectivityManager.bindProcessToNetwork(null); // Clear routing
+                connectivityManager.bindProcessToNetwork(null);
                 connectivityManager.unregisterNetworkCallback(networkCallback);
                 Log.d(TAG, "Network released. Returning to BLE Fringe Mode.");
             } catch (Exception e) {
                 Log.e(TAG, "Error releasing network: " + e.getMessage());
             }
+
             networkCallback = null;
         }
     }
