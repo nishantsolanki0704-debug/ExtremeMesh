@@ -2,12 +2,10 @@ package com.mesh.extreme;
 
 public class BloomFilter64 {
 
-    // The entire Bloom filter state is stored in this single 64-bit primitive
+    
     private long filterMask = 0L;
 
-    /**
-     * Adds a packet hash to the Bloom Filter.
-     */
+  
     public void add(int packetHash) {
         int[] indices = getBitIndices(packetHash);
         for (int index : indices) {
@@ -15,23 +13,18 @@ public class BloomFilter64 {
         }
     }
 
-    /**
-     * Checks if the packet MIGHT be in the database.
-     * Returns TRUE if probably present, FALSE if definitely NOT present.
-     */
+  
     public boolean mightContain(int packetHash) {
         int[] indices = getBitIndices(packetHash);
         for (int index : indices) {
             if ((filterMask & (1L << index)) == 0L) {
-                return false; // Definitely not seen this packet
+                return false; 
             }
         }
         return true; // Probably seen it
     }
 
-    /**
-     * Merges another node's Bloom filter into ours via bitwise OR.
-     */
+    
     public void merge(long remoteFilterMask) {
         this.filterMask |= remoteFilterMask;
     }
@@ -40,9 +33,7 @@ public class BloomFilter64 {
         return filterMask;
     }
 
-    /**
-     * Deterministically derives 3 indices (0-63) from the packet hash.
-     */
+   
     private int[] getBitIndices(int hash) {
         // Mix the hash to avoid clustering
         int h1 = (hash ^ (hash >>> 16)) & 0x3F; // 0x3F is 63
